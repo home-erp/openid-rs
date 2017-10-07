@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["René Richter <richterrettich@gmail.com>"]
 
 [dependencies]
-rocket = "0.3.2"
-rocket_codegen = "0.3.2"
+rocket = "0.3.3"
+rocket_codegen = "0.3.3"
 openssl = "0.9.16"
 rustwt = "1.0.0"
 rusqlite = "0.12.0"
