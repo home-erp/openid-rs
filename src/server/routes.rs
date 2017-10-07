@@ -158,8 +158,6 @@ fn login<'r>(
     let id_token_builder = IDToken::build(&iss, &user.email, &[&auth_request.client_id], 60 * 20)
         .amr(&["password"])
         .nonce(auth_request.nonce.unwrap());
-    // .sign_with_pem(pem, Algorithm::ES512)
-    // .expect("could not sign token");
 
 
     if auth_request.response_type == "code" {
