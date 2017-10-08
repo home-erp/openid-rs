@@ -4,9 +4,11 @@ use std::sync::RwLock;
 use std::collections::HashMap;
 use rustwt;
 use rocket::{self, config};
+use openssl;
 
 mod routes;
 mod authentication_request;
+mod test;
 
 
 pub struct Config {
@@ -17,7 +19,7 @@ pub struct Config {
     pub codes: RwLock<HashMap<String, rustwt::id_token::IDToken>>,
     pub token_duration: u64,
     pub salt: String,
-    pub verification_key: String,
+    pub key_pair: openssl::pkey::PKey,
 }
 
 pub fn run(con: Config, listen: &str, port: u16) {

@@ -39,7 +39,7 @@ pub fn handle_run_command(
     let salt_file_path = get_path(&private_dir, &["salt.txt"]);
     fs::create_dir_all(sign_key.parent().unwrap())?;
 
-    let verification_key = if !sign_key.exists() {
+    let key_pair = if !sign_key.exists() {
         let mut group = EcGroup::from_curve_name(X9_62_PRIME256V1)?;
         group.set_asn1_flag(NAMED_CURVE);
         let key = EcKey::generate(&group)?;
@@ -52,12 +52,12 @@ pub fn handle_run_command(
         let mut verification_key_file = fs::File::create(verification_key_path)?;
         sign_key_file.write_all(&pem)?;
         verification_key_file.write_all(&public_pem)?;
-        String::from_utf8(public_pem).unwrap()
+        key
     } else {
-        let mut verification_key_file = fs::File::open(verification_key_path)?;
-        let mut content = String::new();
-        verification_key_file.read_to_string(&mut content)?;
-        content
+        let mut private_key_file = fs::File::open(sign_key)?;
+        let mut content = Vec::new();
+        private_key_file.read_to_end(&mut content)?;
+        PKey::private_key_from_pem(&content)?
     };
 
     let mut salt = String::new();
@@ -81,7 +81,7 @@ pub fn handle_run_command(
         token_duration: 7 * 24 * 60 * 60,
         codes: RwLock::new(HashMap::new()),
         salt: salt,
-        verification_key: verification_key,
+        key_pair: key_pair,
     };
     server::run(app_config, listen, port);
     Ok(())

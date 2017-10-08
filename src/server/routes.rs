@@ -83,7 +83,10 @@ pub fn authorize<'r>(
 
 #[get("/public-key")]
 pub fn public_key<'r>(state: State<Config>) -> String {
-    state.verification_key.clone()
+    let raw_key = state.key_pair.public_key_to_pem().expect(
+        "could not convert public key to pem",
+    );
+    String::from_utf8(raw_key).expect("could not convert pem bytes to utf8 string")
 }
 
 
