@@ -1,1 +1,1 @@
-INSERT INTO clients(name) values (?1)
+INSERT INTO clients(id,name) values (?1,?2)
