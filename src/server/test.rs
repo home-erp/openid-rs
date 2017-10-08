@@ -1,12 +1,19 @@
-use {Uuid, Config, User, fs, add_mounts, authentication_request, rocket, RwLock};
-use HashMap;
-use Client;
-use store::{Store, SqliteStore};
+use super::{Config, routes};
+use uuid::Uuid;
+use std::fs;
+use std::sync::RwLock;
+use std::collections::HashMap;
+use store::sqlite_store::SqliteStore;
+use store::{Store, User, Client};
+use rocket;
+use openssl::ec::{EcGroup, NAMED_CURVE, EcKey};
+use openssl::nid::X9_62_PRIME256V1;
+use openssl::pkey::PKey;
 
 #[test]
 fn test_sqlite_user_api() {
-    let tmp_dir = format!("/tmp/{}", Uuid::new_v4().simple().to_string());
-    let store = SqliteStore::new(&tmp_dir[..]);
+    let db_file = format!("/tmp/{}", Uuid::new_v4().simple().to_string());
+    let store = SqliteStore::new(&db_file[..]).unwrap();
     let user = User {
         id: String::from("123"),
         email: String::from("user@example.com"),
@@ -34,35 +41,20 @@ fn test_sqlite_user_api() {
 
     assert!(invalid_user.is_none());
 
-    fs::remove_dir_all(&tmp_dir).unwrap();
+    fs::remove_file(&db_file).unwrap();
 }
 
 
 #[test]
 fn test_authorization_endpoint() {
-    let mut authentication_request = authentication_request::AuthenticationRequest {
-        response_type: String::from("id_token"),
-        nonce: Some(String::from("123")),
-        redirect_uri: String::from("https://example.org/cb"),
-        client_id: String::from("111"),
-        scope: String::from("openid"),
-        state: None,
-        display: None,
-        prompt: None,
-        max_age: None,
-        ui_locales: None,
-        id_token_hint: None,
-        login_hint: None,
-        acr_values: None,
-    };
 
     let tmp_dir = format!("/tmp/{}", Uuid::new_v4().simple().to_string());
-    let store = SqliteStore::new(&tmp_dir[..]);
+    let store = SqliteStore::new(&tmp_dir[..]).unwrap();
 
     let auth_client = Client {
         id: String::from("111"),
         name: String::from("foobar"),
-        redirect_uris: vec![
+        redirect_urls: vec![
             String::from("https://example.com/cb"),
             String::from("http://localhost/cb"),
             String::from("http://example.com/cb"),
@@ -71,33 +63,40 @@ fn test_authorization_endpoint() {
 
     store.save_client(&auth_client).expect("save client");
 
-    assert!(store.get_client("111").expect("load client").is_some());
+    assert!(store.get_client("foobar").expect("load client").is_some());
 
+    let mut group = EcGroup::from_curve_name(X9_62_PRIME256V1).unwrap();
+    group.set_asn1_flag(NAMED_CURVE);
+    let key = EcKey::generate(&group).unwrap();
+    let key = PKey::from_ec_key(key).unwrap();
     let config = Config {
-        issuer: String::from("localhost"),
+        issuer: Some(String::from("localhost")),
         config_dir_path: String::from("~/.config/openid-rs"),
-        store: store,
+        store: Box::new(store),
         sessions: RwLock::new(HashMap::new()),
         token_duration: 7 * 24 * 60 * 60,
         codes: RwLock::new(HashMap::new()),
         salt: String::from("wurstbrot"),
+        key_pair: key,
     };
 
 
 
     //.mount("/", routes![authorize]).
 
-    let mut rocket_instance = rocket::ignite().manage(config);
-    rocket_instance = add_mounts(rocket_instance);
+    let rocket_instance = rocket::ignite().manage(config).mount(
+        "/",
+        routes![routes::authorize],
+    );
     let client = rocket::local::Client::new(rocket_instance).expect("valid rocket instance");
 
     //    &redirect_uri=https%3A%2F%2Fexample.com%2Fcb
     //    &redirect_uri=https://example.com/cb
-    let mut req = client.get(
+    let req = client.get(
         r#"/authorize?response_type=id_token
     &nonce=123
     &redirect_uri=https%3A%2F%2Fexample.com%2Fcb
-    &client_id=111&scope=openid"#,
+    &client_id=foobar&scope=openid"#,
     );
     let mut response = req.dispatch();
     assert_eq!(response.status(), rocket::http::Status::Ok);
@@ -107,7 +106,7 @@ fn test_authorization_endpoint() {
         .get(
             r#"/authorize?response_type=code
     &redirect_uri=https%3A%2F%2Fexample.com%2Fcb
-    &client_id=111&scope=openid"#,
+    &client_id=foobar&scope=openid"#,
         )
         .dispatch();
     assert_eq!(response.status(), rocket::http::Status::Ok);
@@ -117,7 +116,7 @@ fn test_authorization_endpoint() {
         .get(
             r#"/authorize?response_type=code
     &redirect_uri=http%3A%2F%2Flocalhost%2Fcb
-    &client_id=111&scope=openid"#,
+    &client_id=foobar&scope=openid"#,
         )
         .dispatch();
     assert_eq!(response.status(), rocket::http::Status::Ok);
@@ -127,7 +126,7 @@ fn test_authorization_endpoint() {
         .get(
             r#"/authorize?response_type=code
     &redirect_uri=http%3A%2F%2Fexample.com%2Fcb
-    &client_id=111&scope=openid"#,
+    &client_id=foobar&scope=openid"#,
         )
         .dispatch();
     assert_eq!(response.status(), rocket::http::Status::BadRequest);
@@ -138,7 +137,7 @@ fn test_authorization_endpoint() {
             r#"/authorize?response_type=id_token
     &nonce=123
     &redirect_uri=https%3A%2F%2Fexample.com%2Fwrong_cb
-    &client_id=111&scope=openid"#,
+    &client_id=foobar&scope=openid"#,
         )
         .dispatch();
     assert_eq!(response.status(), rocket::http::Status::BadRequest);
@@ -148,7 +147,7 @@ fn test_authorization_endpoint() {
         .get(
             r#"/authorize?response_type=id_token
     &redirect_uri=https%3A%2F%2Fexample.com%2Fcb
-    &client_id=111&scope=openid"#,
+    &client_id=foobar&scope=openid"#,
         )
         .dispatch();
     assert_eq!(response.status(), rocket::http::Status::BadRequest);
@@ -157,7 +156,7 @@ fn test_authorization_endpoint() {
     response = client
         .get(
             "/authorize?response_type=code
-            &redirect_uri=https%3A%2F%2Fexample.com%2Fcb&client_id=111&scope=bla",
+            &redirect_uri=https%3A%2F%2Fexample.com%2Fcb&client_id=foobar&scope=bla",
         )
         .dispatch();
     assert_eq!(response.status(), rocket::http::Status::BadRequest);
@@ -175,7 +174,7 @@ fn test_authorization_endpoint() {
     response = client
         .get(
             "/authorize?response_type=asdf
-            &redirect_uri=https%3A%2F%2Fexample.com%2Fcb&client_id=111&scope=openid",
+            &redirect_uri=https%3A%2F%2Fexample.com%2Fcb&client_id=foobar&scope=openid",
         )
         .dispatch();
     assert_eq!(response.status(), rocket::http::Status::BadRequest);
