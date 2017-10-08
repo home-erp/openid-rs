@@ -43,7 +43,7 @@ fn handle_change_email_command(_: &clap::ArgMatches, _: Box<Store>) -> Result<()
 
 fn handle_list_command(store: Box<Store>) -> Result<(), CliError> {
     let users = store.get_users()?;
-    for user in users {
+    for (_, user) in users {
         println!("Email: {}", user.email);
         if !user.groups.is_empty() {
             println!("Groups: {}", user.groups.join(","));
@@ -108,6 +108,7 @@ fn handle_add_user_command(args: &clap::ArgMatches, store: Box<Store>) -> Result
     let hashed_pwd = base64::encode(&hashed_pwd_bytes);
 
     let user = store::User {
+        id: uuid::Uuid::new_v4().to_string(),
         email: String::from(email),
         password: Some(hashed_pwd),
         groups: groups,

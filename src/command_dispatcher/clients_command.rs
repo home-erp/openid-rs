@@ -1,6 +1,7 @@
 use clap;
 use store::{Store, Client};
 use command_dispatcher::error::CliError;
+use uuid;
 
 pub fn handle_clients_command(
     command: &clap::ArgMatches,
@@ -20,7 +21,7 @@ pub fn handle_clients_command(
 fn handle_list_clients_command(store: Box<Store>) -> Result<(), CliError> {
     let clients = store.get_clients()?;
 
-    for client in clients {
+    for (_, client) in clients {
         println!("{}", client.name);
         println!("{}", client.redirect_urls.join(" "));
     }
@@ -35,6 +36,7 @@ fn handle_add_client_command(args: &clap::ArgMatches, store: Box<Store>) -> Resu
         None => Vec::new(),
     };
     let client = Client {
+        id: uuid::Uuid::new_v4().to_string(),
         name: String::from(client_name),
         redirect_urls: urls,
     };
