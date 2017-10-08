@@ -1,1 +1,1 @@
-DELETE FROM client_redirects where client_name = ?1
+DELETE FROM client_redirects where client_id = (select id from clients where name = ?1)

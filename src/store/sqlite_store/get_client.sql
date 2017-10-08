@@ -1,4 +1,4 @@
-SELECT c.name, cr.url
+SELECT c.id,c.name, cr.url
 FROM clients c INNER JOIN client_redirects cr
-ON c.name = cr.client_name
+ON c.id = cr.client_id
 WHERE c.name = ?1
