@@ -1,5 +1,5 @@
 use clap;
-use std::{self, fs};
+use std::fs;
 use utils::get_path;
 use store::Store;
 use command_dispatcher::error::CliError;
@@ -11,17 +11,19 @@ use std::collections::HashMap;
 use server;
 use std::io::prelude::*;
 use uuid;
+use std::path::PathBuf;
 
+
+
+//set in build script
+static CONFIG_DIR: &str = env!("CONFIG_DIR");
 
 pub fn handle_run_command(
     command: &clap::ArgMatches,
     store: Box<Store + Send + Sync>,
 ) -> Result<(), CliError> {
-    let home_dir = std::env::home_dir().ok_or(CliError::OtherError(
-        "could not determine home directory",
-    ))?;
 
-    let config_dir = get_path(&home_dir, &[".config", "openid-rs"]);
+    let config_dir = PathBuf::from(CONFIG_DIR.to_string());
 
     let listen = command.value_of("address").unwrap_or("0.0.0.0");
 
