@@ -1,6 +1,6 @@
 use std;
 use std::error::Error;
-use rusqlite;
+use super::super::rusqlite;
 use std::fmt;
 use std::borrow::Borrow;
 

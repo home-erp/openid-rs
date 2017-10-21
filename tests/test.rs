@@ -1,11 +1,18 @@
-use super::{Config, routes};
+#![feature(plugin,custom_derive)]
+#![plugin(rocket_codegen)]
+extern crate rocket;
+extern crate openid;
+
+extern crate uuid;
+
+extern crate openssl;
+use openid::server::{Config, routes};
 use uuid::Uuid;
 use std::fs;
 use std::sync::RwLock;
 use std::collections::HashMap;
-use store::sqlite_store::SqliteStore;
-use store::{Store, User, Client};
-use rocket;
+use openid::store::sqlite_store::SqliteStore;
+use openid::store::{Store, User, Client};
 use openssl::ec::{EcGroup, NAMED_CURVE, EcKey};
 use openssl::nid::X9_62_PRIME256V1;
 use openssl::pkey::PKey;

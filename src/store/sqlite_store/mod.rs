@@ -1,4 +1,4 @@
-use rusqlite;
+use super::super::rusqlite;
 use store::error::StoreError;
 use store::*;
 use std::collections::HashMap;
