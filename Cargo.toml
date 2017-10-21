@@ -3,6 +3,14 @@ name = "openid-rs"
 version = "0.1.0"
 authors = ["René Richter <richterrettich@gmail.com>"]
 
+[lib]
+name = "openid"
+path = "src/lib.rs"
+
+[[bin]]
+name = "openid-rs"
+path = "src/main.rs"
+
 [dependencies]
 rocket = "0.3.3"
 rocket_codegen = "0.3.3"

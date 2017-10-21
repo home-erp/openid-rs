@@ -6,10 +6,8 @@ use rustwt;
 use rocket::{self, config};
 use openssl;
 
-mod routes;
+pub mod routes;
 mod authentication_request;
-mod test;
-
 
 pub struct Config {
     pub issuer: Option<String>,

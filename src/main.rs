@@ -1,30 +1,10 @@
-#![feature(plugin,custom_derive)]
-#![plugin(rocket_codegen)]
-extern crate rocket;
-extern crate rustwt;
-extern crate rusqlite;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
-extern crate uuid;
-extern crate time;
-extern crate openssl;
-extern crate url;
 extern crate clap;
-extern crate base64;
+extern crate openid;
 
 
-mod store;
-mod command_dispatcher;
-mod utils;
-mod server;
 
 use clap::{Arg, App, SubCommand, AppSettings};
-
-
 use std::fs;
-use store::sqlite_store::SqliteStore;
 
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -79,18 +59,19 @@ fn main() {
         .get_matches();
 
     let home_dir = std::env::home_dir().unwrap();
-    let db_path = utils::get_path(&home_dir, &[".local", "share", "openid-rs", "db.sqlite3"]);
+    let db_path =
+        openid::utils::get_path(&home_dir, &[".local", "share", "openid-rs", "db.sqlite3"]);
     fs::create_dir_all(db_path.parent().unwrap()).expect("could not create database directory.");
     let db_path_str = db_path.to_str().expect(
         "could not convert db-path to string",
     );
 
-    let store = match SqliteStore::new(db_path_str) {
+    let store = match openid::store::sqlite_store::SqliteStore::new(db_path_str) {
         Ok(store) => Box::new(store),
         Err(e) => panic!("error while creating backend store: {}", e),
     };
 
-    command_dispatcher::dispatch_command(matches, store);
+    openid::command_dispatcher::dispatch_command(matches, store);
 
 }
 
