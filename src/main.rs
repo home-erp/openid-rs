@@ -13,7 +13,6 @@ const AUTHORS: &'static str = env!("CARGO_PKG_AUTHORS");
 
 
 fn main() {
-
     let matches = App::new("openid-rs")
         .version(VERSION)
         .author(AUTHORS)
