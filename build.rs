@@ -2,7 +2,6 @@
 use std::env;
 
 fn main(){
-
     match env::var("CONFIG_DIR") {
         Ok(config_dir) =>println!("cargo:rustc-env=CONFIG_DIR={}",config_dir),
         Err(_) => {
